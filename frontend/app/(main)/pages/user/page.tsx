@@ -5,22 +5,14 @@ import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
 import { FileUpload } from 'primereact/fileupload';
-import { InputNumber, InputNumberValueChangeEvent } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
-import { RadioButton, RadioButtonChangeEvent } from 'primereact/radiobutton';
-import { Rating } from 'primereact/rating';
 import { Toast } from 'primereact/toast';
 import { Toolbar } from 'primereact/toolbar';
 import { classNames } from 'primereact/utils';
-import React, { useEffect, useRef, useState } from 'react';
-import { ProductService } from '../../../../demo/service/ProductService';
-import { Demo } from '@/types';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { UserService } from '@/service/UserService';
-import { error } from 'console';
 
-/* @todo Used 'as any' for types here. Will fix in next version due to onSelectionChange event type issue. */
-const Crud = () => {
+const User = () => {
     let emptyUser: Projeto.User = {
         id: 0,
         username: '',
@@ -39,19 +31,21 @@ const Crud = () => {
     const [globalFilter, setGlobalFilter] = useState('');
     const toast = useRef<Toast>(null);
     const dt = useRef<DataTable<any>>(null);
-    const userService = new UserService();
+    const userService = useMemo(() => new UserService(), []);
 
     useEffect(() => {
-        if (users.length == 0){
-        userService.listAll()
-        .then((response) => {
-            console.log(response.data);
-            setUsers(response.data)
-        }).catch((error) => {
-            console.log(error)
-        })
+        if (users.length == 0) {
+            userService
+                .listAll()
+                .then((response) => {
+                    console.log(response.data);
+                    setUsers(response.data);
+                })
+                .catch((error) => {
+                    console.log(error);
+                });
         }
-    }, [users]);
+    }, [userService, users]);
 
     const openNew = () => {
         setUser(emptyUser);
@@ -75,43 +69,46 @@ const Crud = () => {
     const saveUser = () => {
         setSubmitted(true);
 
-        if(!user.id){
-            userService.insert(user)
-            .then((response) => {
-                setUserDialog(false);
-                setUser(emptyUser)
-                setUsers([]);
-                toast.current?.show({
-                    severity: 'info',
-                    summary: 'sucess',
-                    detail: 'User cadastrado OK'
+        if (!user.id) {
+            userService
+                .insert(user)
+                .then((response) => {
+                    setUserDialog(false);
+                    setUser(emptyUser);
+                    setUsers([]);
+                    toast.current?.show({
+                        severity: 'info',
+                        summary: 'Success',
+                        detail: 'User registration completed successfully'
+                    });
                 })
-            })
-            .catch((error) => {
-                toast.current?.show({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Erro ao cadastradar' + error.data.message
+                .catch((error) => {
+                    toast.current?.show({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'Error registering' + error.data.message
+                    });
+                });
+        } else {
+            userService
+                .update(user)
+                .then((response) => {
+                    setUserDialog(false);
+                    setUser(emptyUser);
+                    setUsers([]);
+                    toast.current?.show({
+                        severity: 'info',
+                        summary: 'Success',
+                        detail: 'User changed successfully'
+                    });
                 })
-            })
-        } else { 
-            userService.update(user)
-            .then((response) => {
-                setUserDialog(false);
-                setUser(emptyUser)
-                setUsers([]);
-                toast.current.show({
-                    severity: 'info',
-                    summary: 'sucess',
-                    detail: 'User altrado OK'
-                })
-            }).catch((error) => {
-                toast.current.show({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Erro ao alterar' + error.data.message
-                })
-            })
+                .catch((error) => {
+                    toast.current?.show({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'Error updating user' + error.data.message
+                    });
+                });
         }
     };
 
@@ -125,51 +122,30 @@ const Crud = () => {
         setDeleteUserDialog(true);
     };
 
-    
     const deleteUser = () => {
-        userService.delete(user.id).then((response) => {
-            setUser(emptyUser);
-            setUsers([]);
-            toast.current?.show({
-                severity: 'success',
-                summary: 'Sucess',
-                detail: 'user delete sucess',
-                life: 3000
-            });
-        }).catch((error) => {
-            toast.current?.show({
-                severity: 'error',
-                summary: 'erro',
-                detail: 'user delete erro',
-                life: 3000
-            });
-        });
-    };
-    
-
-    /*const findIndexById = (id: string) => {
-        let index = -1;
-        for (let i = 0; i < (products as any)?.length; i++) {
-            if ((products as any)[i].id === id) {
-                index = i;
-                break;
-            }
+        if (user.id) {
+            userService
+                .delete(user.id)
+                .then((response) => {
+                    setUser(emptyUser);
+                    setUsers([]);
+                    toast.current?.show({
+                        severity: 'success',
+                        summary: 'Sucess',
+                        detail: 'User delete sucess',
+                        life: 3000
+                    });
+                })
+                .catch((error) => {
+                    toast.current?.show({
+                        severity: 'error',
+                        summary: 'Erro',
+                        detail: 'User delete erro',
+                        life: 3000
+                    });
+                });
         }
-
-        return index;
     };
-    */
-
-    /*
-    const createId = () => {
-        let id = '';
-        let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        for (let i = 0; i < 5; i++) {
-            id += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return id;
-    };
-    */
 
     const exportCSV = () => {
         dt.current?.exportCSV();
@@ -194,15 +170,6 @@ const Crud = () => {
         */
     };
 
-    /*
-    const onCategoryChange = (e: RadioButtonChangeEvent) => {
-        let _product = { ...product };
-        _product['category'] = e.value;
-        setProduct(_product);
-    };
-    */
-
-    
     const onInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, name: string) => {
         const val = (e.target && e.target.value) || '';
         let _user = { ...user };
@@ -210,17 +177,6 @@ const Crud = () => {
 
         setUser(_user);
     };
-    
-
-    /*
-    const onInputNumberChange = (e: InputNumberValueChangeEvent, name: string) => {
-        const val = e.value || 0;
-        let _product = { ...product };
-        _product[`${name}`] = val;
-
-        setProduct(_product);
-    };
-    */
 
     const leftToolbarTemplate = () => {
         return (
@@ -409,8 +365,6 @@ const Crud = () => {
                             />
                             {submitted && !user.email && <small className="p-invalid">Email is required.</small>}
                         </div>
-                                
-
                     </Dialog>
 
                     <Dialog visible={deleteUserDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteUserDialogFooter} onHide={hideDeleteUserDialog}>
@@ -436,4 +390,4 @@ const Crud = () => {
     );
 };
 
-export default Crud;
+export default User;
