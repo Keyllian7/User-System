@@ -11,6 +11,7 @@ import { Toolbar } from 'primereact/toolbar';
 import { classNames } from 'primereact/utils';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { UserService } from '@/service/UserService';
+import { error } from 'console';
 
 const User = () => {
     let emptyUser: Projeto.User = {
@@ -26,7 +27,7 @@ const User = () => {
     const [deleteUserDialog, setDeleteUserDialog] = useState(false);
     const [deleteUsersDialog, setDeleteUsersDialog] = useState(false);
     const [user, setUser] = useState<Projeto.User>(emptyUser);
-    const [selectedUsers, setSelectedUsers] = useState(null);
+    const [selectedUsers, setSelectedUsers] = useState<Projeto.User[]>([]);
     const [submitted, setSubmitted] = useState(false);
     const [globalFilter, setGlobalFilter] = useState('');
     const toast = useRef<Toast>(null);
@@ -156,18 +157,35 @@ const User = () => {
     };
 
     const deleteSelectedUsers = () => {
-        /*
-        let _products = (products as any)?.filter((val: any) => !(selectedProducts as any)?.includes(val));
-        setProducts(_products);
-        setDeleteProductsDialog(false);
-        setSelectedProducts(null);
-        toast.current?.show({
-            severity: 'success',
-            summary: 'Successful',
-            detail: 'Products Deleted',
-            life: 3000
-        });
-        */
+        Promise.all(
+            selectedUsers.map(async (_user) => {
+                if (_user.id) {
+                    await userService
+                        .delete(_user.id)
+                        .then((response) => {})
+                        .catch((error) => {});
+                }
+            })
+        )
+            .then((response) => {
+                setUsers([]);
+                setSelectedUsers([]);
+                setDeleteUsersDialog(false);
+                toast.current?.show({
+                    severity: 'success',
+                    summary: 'Sucess',
+                    detail: 'Users delete sucess',
+                    life: 3000
+                });
+            })
+            .catch((error) => {
+                toast.current?.show({
+                    severity: 'error',
+                    summary: 'Erro',
+                    detail: 'User delete erro',
+                    life: 3000
+                });
+            });
     };
 
     const onInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, name: string) => {
